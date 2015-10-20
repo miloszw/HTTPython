@@ -26,8 +26,10 @@ def serve():
         conn, addr = sock.accept()              # Accept incoming connection
         print('Connection from', addr)
         data = conn.recv(1024)                  # Receive request
-        handle_request(conn, data)              # Handle request
-        conn.close()                            # Close connection
+        try:
+            handle_request(conn, data)          # Handle request
+        finally:
+            conn.close()                        # Close connection
         print('Closed connection')
 
 def handle_request(conn, data):
