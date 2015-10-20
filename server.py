@@ -1,4 +1,4 @@
-import socket, re, time, os.path
+import socket, re, time, os.path as osp
 
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = 8080               # Arbitrary non-privileged port
@@ -47,18 +47,25 @@ def handleRequest(conn, data):
         return
 
     try:
-        with open(uri[1:], 'r') as f:
-            contents = f.read()
+        with open(uri[1:], 'rb') as f:
+            content = f.read()
+            contentType = {
+                'txt': 'text/plain',
+                'jpg': 'image/JPEG',
+                'jpeg': 'image/JPEG',
+                'html': 'text/html',
+                'htm': 'text/html'
+            }.get(f.name.split('.')[1], 'text/plain')
             headers = {
-                'Content-Type': 'text/plain', # TODO
-                'Content-Length': len(contents.encode('utf-8')), # TODO
-                'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(os.path.getmtime(f.name)))
+                'Content-Type': contentType,
+                'Content-Length': len(content),
+                'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(osp.getmtime(f.name)))
             }
-            sendResponse(conn, 200, contents, headers)
+            sendResponse(conn, 200, content, headers)
     except IOError:
         sendResponse(conn, 404)
 
-def sendResponse(conn, statusCode, messageBody='', messageHeaders=None):
+def sendResponse(conn, statusCode, messageBody='', messageHeaders={}):
     # Prepare status line
     statusMessages = {
         200: 'OK',
@@ -78,7 +85,8 @@ def sendResponse(conn, statusCode, messageBody='', messageHeaders=None):
     headers = ''.join(['{}: {}{}'.format(k,v,CRLF) for (k,v) in messageHeaders.items()])
 
     # Prepare response
-    response = bytearray('{}{}{}{}'.format(statusLine, headers, CRLF, messageBody), 'utf-8')
+    response = bytearray('{}{}{}'.format(statusLine, headers, CRLF), 'utf-8')
+    response.extend(messageBody)
     conn.sendall(response)
 
 def shutdown():
