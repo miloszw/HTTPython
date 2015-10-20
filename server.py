@@ -8,9 +8,12 @@ HTTPVer = 'HTTP/1.1'
 
 
 def serve():
-    # Create TCP socket, bind it to given port and start listening for connections
+    # Create TCP socket
     global sock
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Allow socket to be reused so we don't have to wait for OS to relase it
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # Bind to given port and start listening for connections
     sock.bind((HOST, PORT))
     sock.listen(0)
     print('Listening on port {}'.format(PORT))
