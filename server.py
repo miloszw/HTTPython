@@ -1,4 +1,4 @@
-import socket, re, datetime
+import socket, re, time
 
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = 8080               # Arbitrary non-privileged port
@@ -60,18 +60,21 @@ def sendResponse(conn, statusCode, messageBody=''):
         501: 'Not Implemented',
         505: 'HTTP Version not supported'
     }
-    statusString = '{}: {}'.format(statusCode, statusMessages.get(statusCode,''))
+    statusString = '{} {}'.format(statusCode, statusMessages.get(statusCode,''))
     statusLine = '{} {}{}'.format(HTTPVer, statusString, CRLF)
 
     # Prepare response headers
     headers = ''.join(['{}: {}{}'.format(k,v,CRLF) for (k,v) in {
-        'Date': datetime.datetime.now(),
+        'Server': 'ServerMcAwesome/0.1',
+        'Date': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime()),
         'Content-Type': 'text/plain',           # TODO
-        'Server': 'Server McAwesome 0.1'
+        'Content-Length': len(messageBody.encode('utf-8')),
+        'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime()),
+        'Connection': 'close'
     }.items()])
 
     # Prepare response
-    response = bytearray('{}{}{}{}'.format(statusLine, headers, CRLF, messageBody), 'UTF-8')
+    response = bytearray('{}{}{}{}'.format(statusLine, headers, CRLF, messageBody), 'utf-8')
     conn.sendall(response)
 
 def shutdown():
