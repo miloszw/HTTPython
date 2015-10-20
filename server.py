@@ -1,7 +1,10 @@
-import socket, re, time, os.path as osp
+import socket, re, time, sys, os.path as osp
 
-HOST = ''                 # Symbolic name meaning all available interfaces
-PORT = 8080               # Arbitrary non-privileged port
+HOST = ''                           # Symbolic name meaning all available interfaces
+try:
+    PORT = int(sys.argv[1])         # Use first command line argument as port number
+except (ValueError, IndexError):
+    PORT = 8080                     # Fallback to preset value
 
 CRLF = '\r\n'
 HTTP_ver = 'HTTP/1.1'
