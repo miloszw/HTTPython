@@ -1,4 +1,4 @@
-import socket, re
+import socket, re, datetime
 
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = 8080               # Arbitrary non-privileged port
@@ -28,10 +28,13 @@ def serve():
         print('Closed connection')
 
 def handleRequest(conn, data):
-    dataArray = data.decode().split(CRLF)
+    decodedData = data.decode()
+    print('Request:', decodedData)
+    dataArray = decodedData.split(CRLF)
     requestLine = dataArray[0]
     headerLines = dataArray[1:]
 
+    # TODO: check for trailing CRLF
     method, uri, version = re.match(r'^(\S+)\s(\S+)\s(\S+)', requestLine).groups()
 
     # We only support GET requests
@@ -43,13 +46,32 @@ def handleRequest(conn, data):
         sendResponse(conn, 505)                 # 501: not implemented
         return
 
-def sendResponse(conn, statusCode):
+    try:
+        with open(uri[1:], 'r') as f:
+            sendResponse(conn, 200, f.read())
+    except IOError:
+        sendResponse(conn, 404)
+
+def sendResponse(conn, statusCode, messageBody=''):
+    # Prepare status line
     statusMessages = {
+        200: 'OK',
+        404: 'Not Found',
         501: 'Not Implemented',
         505: 'HTTP Version not supported'
     }
-    responseString = '{}: {}'.format(statusCode, statusMessages.get(statusCode,''))
-    response = bytearray('{} {} {}'.format(HTTPVer, responseString, CRLF), 'UTF-8')
+    statusString = '{}: {}'.format(statusCode, statusMessages.get(statusCode,''))
+    statusLine = '{} {}{}'.format(HTTPVer, statusString, CRLF)
+
+    # Prepare response headers
+    headers = ''.join(['{}: {}{}'.format(k,v,CRLF) for (k,v) in {
+        'Date': datetime.datetime.now(),
+        'Content-Type': 'text/plain',           # TODO
+        'Server': 'Server McAwesome 0.1'
+    }.items()])
+
+    # Prepare response
+    response = bytearray('{}{}{}{}'.format(statusLine, headers, CRLF, messageBody), 'UTF-8')
     conn.sendall(response)
 
 def shutdown():
