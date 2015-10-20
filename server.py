@@ -32,14 +32,21 @@ def handleRequest(conn, data):
     requestLine = dataArray[0]
     headerLines = dataArray[1:]
 
-    if not re.match(r'^GET', requestLine):
-        # We only support GET requests
-        # Send status code 501: not implemented
-        sendResponse(conn, 501)
+    method, uri, version = re.match(r'^(\S+)\s(\S+)\s(\S+)', requestLine).groups()
+
+    # We only support GET requests
+    if method != 'GET':
+        sendResponse(conn, 501)                 # 501: not implemented
+        return
+    # We only support HTTP version 1.1
+    if version != 'HTTP/1.1':
+        sendResponse(conn, 505)                 # 501: not implemented
+        return
 
 def sendResponse(conn, statusCode):
     statusMessages = {
-        501: 'Not Implemented'
+        501: 'Not Implemented',
+        505: 'HTTP Version not supported'
     }
     responseString = '{}: {}'.format(statusCode, statusMessages.get(statusCode,''))
     response = bytearray('{} {} {}'.format(HTTPVer, responseString, CRLF), 'UTF-8')
