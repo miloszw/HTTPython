@@ -34,12 +34,12 @@ def handle_request(conn, data):
     decoded_data = data.decode()
     print('Request:', decoded_data)
     data_array = decoded_data.split(CRLF)
-    # check for CRLF
-    if data_array[-2:] != ['', '']:
+    request_line = data_array[0]
+    header_lines = data_array[1:]
+    # check for CRLF and Host header
+    if data_array[-2:] != ['', ''] or 'Host' not in map(lambda s: s.split(':')[0], header_lines):
         send_response(conn, 400)                 # 400: bad request
         return
-    request_line = data_array[0]
-    header_lines = data_array[1:] #TODO
 
     try:
         method, uri, version = re.match(r'^(\S+)\s(\S+)\s(\S+)', request_line).groups()
