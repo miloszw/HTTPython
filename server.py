@@ -62,7 +62,7 @@ def handle_request(conn, data):
                 'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(osp.getmtime(f.name)))
             }
             send_response(conn, 200, content, headers)
-    except IOError:
+    except FileNotFoundError:
         send_response(conn, 404)
 
 def send_response(conn, status_code, message_body='', message_headers={}):
@@ -86,7 +86,7 @@ def send_response(conn, status_code, message_body='', message_headers={}):
 
     # Prepare response
     response = bytearray('{}{}{}'.format(status_line, headers, CRLF), 'utf-8')
-    response.extend(message_body)
+    response.extend(message_body or bytearray(status_string, 'utf-8'))
     conn.sendall(response)
 
 def shutdown():
