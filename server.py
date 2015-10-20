@@ -26,7 +26,7 @@ def serve():
         conn, addr = sock.accept()              # Accept incoming connection
         print('Connection from', addr)
         data = conn.recv(1024)                  # Receive request
-        handle_request(conn, data)               # Handle request
+        handle_request(conn, data)              # Handle request
         conn.close()                            # Close connection
         print('Closed connection')
 
@@ -38,7 +38,11 @@ def handle_request(conn, data):
     header_lines = data_array[1:] #TODO
 
     # TODO: check for trailing CRLF
-    method, uri, version = re.match(r'^(\S+)\s(\S+)\s(\S+)', request_line).groups()
+    try:
+        method, uri, version = re.match(r'^(\S+)\s(\S+)\s(\S+)', request_line).groups()
+    except AttributeError: # match failed
+        send_response(conn, 400)                 # 400: bad request
+        return
 
     # We only support GET requests
     if method != 'GET':
@@ -46,7 +50,7 @@ def handle_request(conn, data):
         return
     # We only support HTTP version 1.1
     if version != 'HTTP/1.1':
-        send_response(conn, 505)                 # 501: not implemented
+        send_response(conn, 505)                 # 505: version not supported
         return
 
     try:
@@ -72,9 +76,10 @@ def send_response(conn, status_code, message_body='', message_headers={}):
     # Prepare status line
     status_messages = {
         200: 'OK',
+        400: 'Bad Request',
         404: 'Not Found',
         501: 'Not Implemented',
-        505: 'HTTP Version not supported'
+        505: 'HTTP Version Not Supported'
     }
     status_string = '{} {}'.format(status_code, status_messages.get(status_code,''))
     status_line = '{} {}{}'.format(HTTP_ver, status_string, CRLF)
