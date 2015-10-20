@@ -1,4 +1,4 @@
-import socket, re, time
+import socket, re, time, os.path
 
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = 8080               # Arbitrary non-privileged port
@@ -48,11 +48,17 @@ def handleRequest(conn, data):
 
     try:
         with open(uri[1:], 'r') as f:
-            sendResponse(conn, 200, f.read())
+            contents = f.read()
+            headers = {
+                'Content-Type': 'text/plain', # TODO
+                'Content-Length': len(contents.encode('utf-8')), # TODO
+                'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(os.path.getmtime(f.name)))
+            }
+            sendResponse(conn, 200, contents, headers)
     except IOError:
         sendResponse(conn, 404)
 
-def sendResponse(conn, statusCode, messageBody=''):
+def sendResponse(conn, statusCode, messageBody='', messageHeaders=None):
     # Prepare status line
     statusMessages = {
         200: 'OK',
@@ -64,14 +70,12 @@ def sendResponse(conn, statusCode, messageBody=''):
     statusLine = '{} {}{}'.format(HTTPVer, statusString, CRLF)
 
     # Prepare response headers
-    headers = ''.join(['{}: {}{}'.format(k,v,CRLF) for (k,v) in {
+    messageHeaders.update({
         'Server': 'ServerMcAwesome/0.1',
         'Date': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime()),
-        'Content-Type': 'text/plain',           # TODO
-        'Content-Length': len(messageBody.encode('utf-8')),
-        'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime()),
         'Connection': 'close'
-    }.items()])
+    })
+    headers = ''.join(['{}: {}{}'.format(k,v,CRLF) for (k,v) in messageHeaders.items()])
 
     # Prepare response
     response = bytearray('{}{}{}{}'.format(statusLine, headers, CRLF, messageBody), 'utf-8')
