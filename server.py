@@ -73,10 +73,22 @@ def handle_request(conn, data):
             if 'If-Modified-Since' in header_keys:
                 since = [header for header in header_lines if header.startswith('If-Modified-Since')][0]
                 since = since.split(':',1)[1].lstrip()
-                since = time.strptime(since, '%a, %d %b %Y %H:%M:%S GMT')
-                if since > last_modified:
-                    send_response(conn, 304)
-                    return
+                date_formats = [
+                    '%a %b %d %H:%M:%S %Y',
+                    '%a, %d %b %Y %H:%M:%S GMT',
+                    '%A, %d-%b-%y %H:%M:%S GMT'
+                    ]
+                for df in date_formats:
+                    try:
+                        since = time.strptime(since, df)
+                    except ValueError:
+                        continue
+                    else:
+                        if since > last_modified:
+                            send_response(conn, 304)
+                            return
+                        else:
+                            break
             headers = {
                 'Content-Type': content_type,
                 'Content-Length': len(content),
