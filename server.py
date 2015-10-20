@@ -38,8 +38,9 @@ def handle_request(conn, data):
     data_array = decoded_data.split(CRLF)
     request_line = data_array[0]
     header_lines = data_array[1:]
+    header_keys = map(lambda s: s.split(':')[0], header_lines)
     # check for CRLF and Host header
-    if data_array[-2:] != ['', ''] or 'Host' not in map(lambda s: s.split(':')[0], header_lines):
+    if data_array[-2:] != ['', ''] or 'Host' not in header_keys:
         send_response(conn, 400)                 # 400: bad request
         return
 
@@ -68,10 +69,18 @@ def handle_request(conn, data):
                 'html': 'text/html',
                 'htm': 'text/html'
             }.get(f.name.split('.')[1], 'text/plain')
+            last_modified = time.gmtime(osp.getmtime(f.name))
+            if 'If-Modified-Since' in header_keys:
+                since = [header for header in header_lines if header.startswith('If-Modified-Since')][0]
+                since = since.split(':',1)[1].lstrip()
+                since = time.strptime(since, '%a, %d %b %Y %H:%M:%S GMT')
+                if since > last_modified:
+                    send_response(conn, 304)
+                    return
             headers = {
                 'Content-Type': content_type,
                 'Content-Length': len(content),
-                'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(osp.getmtime(f.name)))
+                'Last-Modified': time.strftime('%a, %d %b %Y %H:%M:%S GMT', last_modified)
             }
             send_response(conn, 200, content, headers)
     except FileNotFoundError:
@@ -81,6 +90,7 @@ def send_response(conn, status_code, message_body='', message_headers={}):
     # Prepare status line
     status_messages = {
         200: 'OK',
+        304: 'Not Modified',
         400: 'Bad Request',
         404: 'Not Found',
         501: 'Not Implemented',
